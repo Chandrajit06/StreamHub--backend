@@ -16,7 +16,7 @@ userRouter.route("/register").post(
             maxCount: 1
         }
     ]),
-    registerUser)          // goes to /register and calls registerUser fn
+    registerUser)
 
 userRouter.route("/login").post(loginUser)
 

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { User } from "../models/user.model.js";
@@ -122,7 +123,7 @@ const logoutUser = asyncHandler( async(req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: { refreshToken: undefined }    // removing refresh token from the database
+            $unset: { refreshToken: 1 }    // removing refresh token from the database
         },
         { new: true }         // returns document after update
     )
@@ -158,7 +159,7 @@ const refreshAccessToken = asyncHandler( async(req, res) => {
             secure: true,
         }
 
-        const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+        const {accessToken, refreshToken: newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
 
         return res.status(200)
                 .cookie("accessToken", accessToken, options)
@@ -256,7 +257,7 @@ const updateUserCoverImage = asyncHandler( async(req, res) => {
 const getUserChannelProfile = asyncHandler( async(req, res) => {
 
     const { username } = req.params            // username of channel from url
-    if(!username?.trim())     throw new ApiError(4000, "Username is missing")
+    if(!username?.trim())     throw new ApiError(400, "Username is missing")
         
     const channel = await User.aggregate([  
         {
@@ -333,7 +334,7 @@ const getWatchHistory = asyncHandler( async(req, res) => {
                         $lookup: {            // Fetch full User document for each video
                             from: "users",                // Go into users collection
                             localField: "owner",          // Take Video's owner field
-                            foreignField: "._id",         // Match with User's _id
+                            foreignField: "_id",          // Match with User's _id
                             as: "owner",                  // Store full user doc in owner
                             pipeline: [{
                                 $project: {
@@ -346,7 +347,7 @@ const getWatchHistory = asyncHandler( async(req, res) => {
                     },
                     {
                         $addFields: {
-                            owner: { $first: "owner" }        // $first unwraps the array and gives the object
+                            owner: { $first: "$owner" }        // $first unwraps the array and gives the object
                         }
                     }
                 ]
